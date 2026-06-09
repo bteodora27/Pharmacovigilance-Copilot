@@ -1,0 +1,15 @@
+# Securitate
+.env
+
+# Mediul virtual
+venv/
+pharmaco_env/
+env/
+
+# Fisiere specifice PyCharm si Jupyter
+.idea/
+.ipynb_checkpoints/
+__pycache__/
+
+# Date prea mari pentru a fi urcate pe GitHub
+data/faers_raw_sample.json
