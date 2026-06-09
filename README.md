@@ -1,10 +1,6 @@
 # Pharmacovigilance Signal Triage Copilot 💊🤖
 **Agent Inteligent pentru Prioritizarea Semnalelor de Siguranță în Medicamente**
 
-## 👥 Echipa
-* **Back Andreea Teodora** 
-* **Aluculesi Andru Casian** 
-
 ## 🎯 Definirea Problemei
 Echipele de siguranță medicamentoasă (Pharmacovigilance) primesc anual milioane de rapoarte privind efectele adverse. Datele sunt frecvent incomplete, redundante și neuniforme (ex: denumiri comerciale diferite pentru aceeași substanță). Procesul manual de triaj este lent și predispus la erori, întârziind detectarea semnalelor critice. 
 * **Inputs:** Rapoarte brute de reacții adverse (format JSON/CSV) extrase din baza de date publică openFDA FAERS, alături de cerințele utilizatorului în limbaj natural (ex: "Analizează semnalele pentru Nurofen").
