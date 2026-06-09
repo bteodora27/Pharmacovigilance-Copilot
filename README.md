@@ -1,130 +1,145 @@
 # 🩺 Pharmacovigilance Signal Triage Copilot
-**Agent Inteligent pentru Prioritizarea Semnalelor de Siguranță în Medicamente**
+**Intelligent Agent for Drug Safety Signal Prioritization**
 
 ---
 
-## 🎯 Definirea Problemei
+## 🎯 Problem Definition
 
-Echipele de siguranță medicamentoasă (Pharmacovigilance / PV) primesc anual **milioane de rapoarte** privind efectele adverse ale medicamentelor. Datele sunt frecvent incomplete, redundante și neuniforme (ex: denumiri comerciale diferite pentru aceeași substanță activă). Procesul manual de triaj este lent și predispus la erori, întârziind detectarea semnalelor critice.
+Pharmacovigilance (PV) safety teams receive **millions of adverse drug reaction reports** annually. Data is frequently incomplete, redundant, and non-uniform (e.g. different brand names for the same active substance). Manual triage is slow and error-prone, delaying the detection of critical safety signals.
 
-- **Inputs:** Rapoarte brute de reacții adverse (format JSON/CSV) extrase din baza de date publică openFDA FAERS + cerința utilizatorului în limbaj natural (ex: *„Analizează semnalele pentru DUPIXENT în 2024"*)
-- **Outputs:** Un **Signal Packet PDF** generat automat conținând: lista prioritizată a semnalelor, metrici statistice (PRR, ROR), grafice de trend lunar și recomandări AI explicabile
+- **Inputs:** Raw adverse reaction reports (JSON/CSV format) extracted from the public openFDA FAERS database + natural language user query (e.g. *"Analyze signals for DUPIXENT in 2024"*)
+- **Outputs:** An automatically generated **Signal Packet PDF** containing: a prioritized signal list, statistical metrics (PRR, ROR), monthly trend charts, and explainable AI recommendations
 
 ---
 
-## 🏗️ Schema Arhitecturală
+## 🏗️ Architecture Overview
 
-![Schema Arhitecturală a Soluției](schema_arhitectura.png)
+![Architecture Diagram](schema_arhitectura.png)
 
-**Fluxul autonom al agentului (7 pași):**
+**Autonomous agent workflow (7 steps):**
 
 ```
-PAS 1: filtreaza_dupa_timp        → selectează rapoartele din intervalul cerut
-PAS 2: normalizeaza_medicament    → brand → INN via RxNorm API (NIH)
-PAS 3: normalizeaza_reactie       → termen liber → MedDRA Preferred Term
-PAS 4: calculeaza_metrici         → PRR, ROR, trend lunar, scor prioritizare
-PAS 5: extrage_cazuri             → drill-down: 5 rapoarte individuale
-PAS 6: formuleaza_recomandari     → LLM generează justificare text
-PAS 7: genereaza_pachet_pdf       → PDF exportabil cu grafice embedded
+STEP 1: filter_by_time            → selects reports within the requested time range
+STEP 2: normalize_drug            → brand name → INN via RxNorm API (NIH)
+STEP 3: normalize_reaction        → free-text term → MedDRA Preferred Term
+STEP 4: calculate_metrics         → PRR, ROR, monthly trend, prioritization score
+STEP 5: extract_cases             → drill-down: 5 individual reports
+STEP 6: formulate_recommendations → LLM generates text justification
+STEP 7: generate_pdf_packet       → exportable PDF with embedded charts
 ```
 
 ---
 
-## 🧠 Tipul de AI Folosit
+## 🧠 AI Stack
 
-| Componentă | Tehnologie | Justificare |
+| Component | Technology | Rationale |
 |---|---|---|
-| **LLM** | Llama 3.3 70B (Meta, open-source) | Gratuit, 70B parametri, urmează instrucțiuni de tool-use corect |
-| **Provider inferență** | Groq API (LPU hardware) | 14.400 req/zi gratuit, latență < 1s/token |
-| **Agent framework** | LangGraph `create_react_agent` | Pattern ReAct: ciclează Reason→Act autonom până finalizează toți pașii |
-| **Tool use** | 6 funcții `@tool` LangChain Core | Docstring-ul fiecărei funcții = descrierea pentru agent |
-| **Normalizare medicamente** | RxNorm API (NIH/NLM) | Standard de facto SUA, gratuit, tolerant la variante ortografice |
-| **Normalizare reacții** | Mapping local MedDRA PT (~30 termeni) | MedDRA complet necesită licență; mapping local acoperă termenii FAERS frecvenți |
-| **UI** | Gradio `share=True` | Link public temporar, fără deployment, ideal pentru demo |
-| **Export** | fpdf2 | PDF cu format fix, non-editabil — standard în medii reglementate FDA/EMA |
+| **LLM** | Llama 3.3 70B (Meta, open-source) | Free, 70B parameters, correctly follows tool-use instructions |
+| **Inference provider** | Groq API (LPU hardware) | 14,400 req/day free tier, latency < 1s/token |
+| **Agent framework** | LangGraph `create_react_agent` | ReAct pattern: autonomously cycles Reason→Act until all steps complete |
+| **Tool use** | 6 `@tool` LangChain Core functions | Each function's docstring serves as its description for the agent |
+| **Drug normalization** | RxNorm API (NIH/NLM) | US de facto standard, free, tolerant of spelling variants |
+| **Reaction normalization** | Local MedDRA PT mapping (~30 terms) | Full MedDRA requires a license; local mapping covers frequent FAERS terms |
+| **UI** | Gradio `share=True` | Temporary public link, no deployment needed — ideal for demos |
+| **Export** | fpdf2 | Fixed-format, non-editable PDF — standard in FDA/EMA regulated environments |
 
 ---
 
-## 📈 Performanță Obținută (KPI măsurați live)
+## 📈 Measured Performance (Live KPIs)
 
-| KPI | Manual (referință) | Cu AI (măsurat) |
+| KPI | Manual (baseline) | With AI (measured) |
 |---|---|---|
-| ⏱️ Timp per semnal | ~45 minute | ~45 secunde |
-| 📦 Pachete/analist/zi (8h) | ~10 | ~100+ |
-| 🕐 Timp semnal → revizuire | ore / zile | secunde |
-| 📋 Standardizare output | variabilă | ✅ 5 secțiuni identice la fiecare rulare |
-| 🔁 Reproductibilitate | manuală | ✅ automată (seed date + deduplicare) |
+| ⏱️ Time per signal | ~45 minutes | ~45 seconds |
+| 📦 Packets/analyst/day (8h) | ~10 | ~100+ |
+| 🕐 Signal → review time | hours / days | seconds |
+| 📋 Output standardization | variable | ✅ 5 identical sections every run |
+| 🔁 Reproducibility | manual | ✅ automatic (date seed + deduplication) |
 
-> Benchmark manual de 45 min/pachet conform literaturii de specialitate PV (Evans et al., 2001).
-
----
-
-## 🌍 Obiective de Dezvoltare Durabilă (SDGs) Impactate
-
-**SDG 3 — Sănătate și Bunăstare**
-Detectarea timpurie a combinațiilor periculoase medicament–eveniment reduce riscul de vătămare al pacienților. Fiecare săptămână câștigată în identificarea unui semnal poate preveni reacții adverse grave la mii de pacienți.
-
-**SDG 9 — Industrie, Inovație și Infrastructură**
-Modernizarea proceselor din industria farmaceutică prin automatizare AI — elimină munca repetitivă și permite specialiștilor să se concentreze pe decizii de înaltă valoare.
-
-**SDG 10 — Inegalități Reduse**
-Echipele PV mici (țări în curs de dezvoltare, producători generici) nu-și pot permite analiști seniori specializați. Agentul democratizează accesul la analiză de calitate regulatorie.
+> Manual baseline of 45 min/packet per PV literature (Evans et al., 2001).
 
 ---
 
-## 📁 Structura Proiect
+## 🌍 Sustainable Development Goals (SDGs)
+
+**SDG 3 — Good Health and Well-Being**
+Early detection of dangerous drug–event combinations reduces patient harm. Every week gained in signal identification can prevent serious adverse reactions in thousands of patients.
+
+**SDG 9 — Industry, Innovation and Infrastructure**
+Modernizing pharmaceutical industry workflows through AI automation — eliminating repetitive work and allowing specialists to focus on high-value decisions.
+
+**SDG 10 — Reduced Inequalities**
+Small PV teams (developing countries, generic manufacturers) cannot afford senior specialist analysts. The agent democratizes access to regulatory-quality analysis.
+
+---
+
+## 📁 Project Structure
+
 
 ```
 ├── notebooks/
-│   ├── 01_EDA.ipynb                       # Ingestie date FAERS + EDA + vizualizări
-│   └── 02_Agent_AI_v2.ipynb               # Agent AI + 6 tools + UI Gradio + Teste
+│   ├── 01_EDA.ipynb                       # FAERS data ingestion + EDA + visualizations
+│   └── 02_Agent_AI_v2.ipynb               # AI agent + 6 tools + Gradio UI + Tests
 ├── data/
-│   ├── faers_raw_sample.json              # Date brute FAERS 2022–2024 (openFDA)
-│   ├── cleaned_faers_data.csv             # Date procesate după EDA
-│   └── cleaned_faers_data_deduped.csv     # Date după deduplicare automată
-├── .env.example                           # Template chei API
-├── .gitignore                             # Exclude .env și date sensibile
+│   ├── faers_raw_sample.json              # Raw FAERS data 2022–2024 (openFDA)
+│   ├── cleaned_faers_data.csv             # Processed data post-EDA
+│   └── cleaned_faers_data_deduped.csv     # Data after automatic deduplication
+├── .env.example                           # API key template
+├── .gitignore                             # Excludes .env and sensitive data
 └── README.md
 ```
 
 ---
 
-## ⚙️ Configurare Rapidă
+## ⚙️ Quick Setup
 
-**1. Clonați repo-ul**
+**1. Clone the repository**
 ```bash
 git clone https://classroom.github.com/a/LESHiTyK
-cd <nume-repo>
+cd <repo-name>
 ```
 
-**2. Creați fișierul `.env`**
+**2. Create the `.env` file**
 ```bash
 cp .env.example .env
-# Deschideți .env și completați cheile:
+# Open .env and fill in the keys:
 ```
 ```
-GROQ_API_KEY=cheia_voastra_de_la_console.groq.com
-FDA_API_KEY=cheia_voastra_de_la_open.fda.gov   # opțional
-```
-
-**3. Rulați notebook-urile în ordine**
-```
-01_EDA.ipynb           →  generează data/cleaned_faers_data.csv
-02_Agent_AI_v2.ipynb   →  pornește agentul + UI Gradio (link public în output)
+GROQ_API_KEY=your_key_from_console.groq.com
+FDA_API_KEY=your_key_from_open.fda.gov   # optional
 ```
 
-**Obținere chei API (gratuit):**
-- `GROQ_API_KEY` → [console.groq.com](https://console.groq.com) — înregistrare simplă, 14.400 req/zi
-- `FDA_API_KEY` → [open.fda.gov/apis](https://open.fda.gov/apis/) — opțional, mărește rate limit-ul
+**3. Run the notebooks in order**
+```
+01_EDA.ipynb           →  generates data/cleaned_faers_data.csv
+02_Agent_AI_v2.ipynb   →  starts the agent + Gradio UI (public link in output)
+```
+
+**Getting API keys (free):**
+- `GROQ_API_KEY` → [console.groq.com](https://console.groq.com) — simple registration, 14,400 req/day
+- `FDA_API_KEY` → [open.fda.gov/apis](https://open.fda.gov/apis/) — optional, increases rate limit
 
 ---
 
-## 📚 Bibliografie & Surse Date
+## 🚀 Future Improvements
 
-| Resursă | URL |
+| Priority | Improvement | Impact |
+|---|---|---|
+| 🔴 High | **Full MedDRA integration** — replace the local ~30-term mapping with a licensed MedDRA browser for complete reaction coverage | Higher signal recall, regulatory acceptance |
+| 🔴 High | **Real-time FAERS ingestion** — replace static CSV snapshots with a live openFDA API polling pipeline triggered on a weekly schedule | Signals detected weeks earlier |
+| 🟡 Medium | **Expanded signal metrics** — add EBGM (Empirical Bayes Geometric Mean) and IC (Information Component) alongside PRR/ROR for multi-method corroboration | Reduces false positive rate |
+| 🟡 Medium | **Multi-drug interaction signals** — extend the agent to detect co-reported drug pairs, not just single-drug signals | Catches combination therapy risks |
+| 🟡 Medium | **Structured output validation** — enforce JSON Schema on LLM outputs and add a confidence score per recommendation | More reliable PDF generation |
+| 🟢 Low | **Authentication & audit trail** — add user login and a tamper-evident log of every generated packet for compliance | Required for production regulatory use |
+| 🟢 Low | **International data sources** — integrate EudraVigilance (EMA) and WHO VigiBase alongside FAERS for global signal coverage | Broader pharmacovigilance scope |
+
+---
+
+## 📚 References & Data Sources
+
+| Resource | URL |
 |---|---|
 | openFDA FAERS API | https://open.fda.gov/apis/drug/event/ |
 | RxNorm API (NIH) | https://lhncbc.nlm.nih.gov/RxNorm/ |
-| Evans et al. 2001 (criteriu PRR) | *Use of proportional reporting ratios (PRRs) for signal generation from spontaneous adverse drug reaction reports* |
+| Evans et al. 2001 (PRR criterion) | *Use of proportional reporting ratios (PRRs) for signal generation from spontaneous adverse drug reaction reports* |
 | LangGraph ReAct | https://langchain-ai.github.io/langgraph/ |
 | Groq API | https://console.groq.com |
